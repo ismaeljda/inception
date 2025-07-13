@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# Attendre que MariaDB démarre correctement
+echo "🚀 Démarrage de MariaDB..."
+
+# Démarrer MariaDB en arrière-plan
+mysqld_safe --user=mysql --datadir=/var/lib/mysql &
+
+# Attendre que MariaDB soit prêt
 echo "⏳ Attente du démarrage de MariaDB..."
-until mysqladmin ping --silent; do
-    sleep 1
+while ! mysqladmin ping --silent; do
+    echo "En attente..."
+    sleep 2
 done
 echo "✅ MariaDB est démarré."
 
@@ -13,15 +19,15 @@ DB_USER=${MYSQL_USER:-my_user}
 DB_PASS=${MYSQL_PASSWORD:-my_password}
 ROOT_PASS=${MYSQL_ROOT_PASSWORD:-root_password}
 
-# ⚠️ Connexion sans mot de passe car --skip-grant-tables est activé
 echo "🔧 Configuration initiale de MariaDB..."
+echo "Database: $DB_NAME"
+echo "User: $DB_USER"
 
-mysql -u root --skip-password <<EOF
--- Réactiver la gestion des mots de passe (inutile ici mais bonne pratique)
-FLUSH PRIVILEGES;
-
+# Configuration initiale (la première fois, root n'a pas de mot de passe)
+mysql -u root <<EOF
 -- Définir un mot de passe pour root
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}';
+FLUSH PRIVILEGES;
 
 -- Créer la base de données si elle n'existe pas
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;
@@ -36,4 +42,15 @@ GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'%';
 FLUSH PRIVILEGES;
 EOF
 
-echo "✅ Initialisation terminée."
+if [ $? -eq 0 ]; then
+    echo "✅ Configuration terminée avec succès."
+else
+    echo "❌ Erreur lors de la configuration."
+fi
+
+# Arrêter MariaDB pour redémarrer proprement
+mysqladmin -u root -p${ROOT_PASS} shutdown
+
+echo "🔄 Redémarrage de MariaDB..."
+# Redémarrer MariaDB au premier plan
+exec mysqld_safe --user=mysql --datadir=/var/lib/mysql

@@ -10,7 +10,7 @@ RUN apt install openssl -y
 RUN openssl req -x509 -nodes \
     -out /etc/nginx/ssl/inception.crt\
     -keyout /etc/nginx/ssl/inception.key\
-    -subj "/C=BE/ST=Bruxelles/L=Bruxelles/O=19/OU=Student/CN=localhost"
+    -subj "/C=BE/ST=Bruxelles/L=Bruxelles/O=19/OU=Student/CN=isall.42.fr"
 
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
